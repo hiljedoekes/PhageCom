@@ -1,151 +1,69 @@
-%%% Analysis of 20200619 data
+%%% Analyse and plot the results of ThresPhiEvol-runs with long time
+%%% between transfers (T = 24h) and a varying degree of noise on the
+%%% bacterial carrying capacity K.
 
-% Read data
-K = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/K.txt');
-exitflag = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/solve_exitflag.txt');
-P = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/P.txt');
-L = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/L.txt');
+clear all;
+datafolder = '../Data/20200819_ThresPhiEvol_varyK';
 
-% Remove column(s) of data that failed 
-% (because gamma distribution with var=0 doesn't work)
-ns = 441;
-nt = 1000;
-nruns = 20;
-K = K(:,2:end);
-Pfull = zeros(ns,nt,nruns);
-Lfull = zeros(ns,nt,nruns);
-for k=1:nruns
-    Pfull(:,:,k) = P(:,(1000*k+1):(1000*(k+1)));
-    Lfull(:,:,k) = L(:,(1000*k+1):(1000*(k+1)));
+%%% Read data
+K = dlmread([datafolder,'/K.txt']);
+ef = dlmread([datafolder,'/solve_exitflag.txt']);
+Plong = dlmread([datafolder,'/P.txt']);
+
+% Check if all runs were successful
+check = 0;
+for i=1:length(ef)
+    if ef(i) ~= 0
+        disp(['Problems in run ',num2str(i)']);
+        check = check+1;
+    end
+end
+if check == 0
+    disp('All runs successful.');  
 end
 
-% For a given time point, plot the phage distribution for each variance
-plottime = 900;
-vars = 0.05:0.05:1;
+%%% Characteristics of runs and phage strains included
 
-p = zeros(ns,nruns);
-l = zeros(ns,nruns);
-for j=1:nruns
-    p(:,j) = Pfull(:,plottime,j) / sum(Pfull(:,plottime,j));
-    l(:,j) = Lfull(:,plottime,j) / sum(Lfull(:,plottime,j));
-end
+nt = 100;       % number of transfers that data were saved for
 
-phimax = 0:0.05:1;
+% Phage strains
+phimax = 0:0.05:1;      % phimax-values included
 nphi  = length(phimax);
-thres = 0:0.05:1;
+thres = 0:0.05:1;       % thres-values included
 nthres = length(thres);
+ns = nphi*nthres;       % number of phage strains
 
-nrows = floor(sqrt(nruns));
-ncols = ceil(nruns / nrows);
+varvec = [0.025:0.025:0.2,0.25:0.05:1]; % Variance of K for different runs
+CVvec = sqrt(varvec);                   % Vector of coefficients of variation
+n = length(varvec);                     % Number of runs
 
-heatmapdata = zeros(nphi,nthres,nruns);
+%%% Store phage distributions in a useful dataframe (distribution per run)
+P = zeros(ns,nt,n);
+for k=1:n
+    P(:,:,k) = Plong(:,(nt*(k-1)+1):(nt*k));
+end
+
+%%% Calculate relative strain frequencies in the last nt timepoints
+%%% Store these in a heatmap data format
+p = zeros(ns,n);
+for i=1:n
+    p(:,i) = (sum(P(:,:,i),2))/(sum(sum(P(:,:,i),2)));
+end
+heatmapdata = zeros(nphi,nthres,n);
 for i=1:nthres
     heatmapdata(:,i,:) = p((1+(i-1)*nphi):(i*nphi),:);
 end
 
-cfig = figure;
-set(cfig,'Units','centimeters','Position',[2 2 42 30],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
-for i=1:nruns
-    subplot(nrows,ncols,i)
-    colormap(flipud(bone));
-    imagesc(heatmapdata(:,:,i));
-    cbar=colorbar;
-    set(cbar,'FontSize',10);
-    set(gca,'YDir','normal');
-    set(gca,'Xtick',1:10:nthres,'FontSize',10);
-    set(gca,'XtickLabel',thres(1:10:nthres));
-    set(gca,'Ytick',1:10:nphi,'FontSize',10);
-    set(gca,'YtickLabel',phimax(1:10:nphi));
-    title(['Var = ',num2str(vars(i))],'FontSize',12);
-    xlabel('Response threshold (\theta)','Fontsize',10);
-    ylabel('Lysogeny propensity (\phi_{max})','Fontsize',10);
-end
-%print(cfig,'~/PhageCom/Figures/Result_plots/thresphi_heatmaps.pdf','-dpdf','-r0')
+%%% PLOT results (supporting figure)
 
-
-% NEWNEWNEWNEWNEWNEWNEWNEWNEW %
-
-ns = 441;
-nt = 1000;
-phimax = 0:0.05:1;
-nphi  = length(phimax);
-thres = 0:0.05:1;
-nthres = length(thres);
-
-varvec = [0.025:0.025:0.2,0.25:0.05:1];
-CVvec = sqrt(varvec);
-n = length(varvec);
-Kfinal = zeros(nt,n);
-Pfinal = zeros(ns,nt,n);
-Lfinal = zeros(ns,nt,n);
-
-
-% Construct a useful dataframe
-
-% Read data 1
-K = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/K.txt');
-exitflag = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/solve_exitflag.txt');
-P = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/P.txt');
-L = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200619_ThresPhiEvol_varyingK/L.txt');
-% Remove column(s) of data that failed 
-% (because gamma distribution with var=0 doesn't work)
-nruns = 20;
-K = K(:,2:end);
-Pfull = zeros(ns,nt,nruns);
-Lfull = zeros(ns,nt,nruns);
-for k=1:nruns
-    Pfull(:,:,k) = P(:,(1000*k+1):(1000*(k+1)));
-    Lfull(:,:,k) = L(:,(1000*k+1):(1000*(k+1)));
-end
-
-% Store these values in the correct columns of final K, P and L
-for i=1:4
-    Kfinal(:,2*i) = K(:,i);
-    Pfinal(:,:,2*i) = Pfull(:,:,i);
-    Lfinal(:,:,2*i) = Lfull(:,:,i);
-end
-for i=5:nruns
-    Kfinal(:,i+4) = K(:,i);
-    Pfinal(:,:,i+4) = Pfull(:,:,i);
-    Lfinal(:,:,2+4) = Lfull(:,:,i);
-end
-
-
-% Read data 2
-K = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200819_ThresPhiEvol_varyingK/K.txt');
-exitflag = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200819_ThresPhiEvol_varyingK/solve_exitflag.txt');
-P = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200819_ThresPhiEvol_varyingK/P.txt');
-L = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200819_ThresPhiEvol_varyingK/L.txt');
-for i=0:3
-    Kfinal(:,(1+2*i)) = K(:,(i+1));
-    Pfinal(:,:,(1+2*i)) = P(:,(1000*i+1):(1000*(i+1)));
-    Lfinal(:,:,(1+2*i)) = L(:,(1000*i+1):(1000*(i+1)));
-end
-
-% Calculate relative frequencies
-timevec = 900:1000;
-lt = length(timevec);
-pfinal = zeros(ns,n);
-lfinal = zeros(ns,n);
-for i=1:n
-    pfinal(:,i) = (sum(Pfinal(:,timevec,i),2))/(sum(sum(Pfinal(:,timevec,i),2)));
-    lfinal(:,i) = (sum(Lfinal(:,timevec,i),2))/(sum(sum(Lfinal(:,timevec,i),2)));
-end
-
-% Heatmap data
-heatmapdata = zeros(nphi,nthres,n);
-for i=1:nthres
-    heatmapdata(:,i,:) = pfinal((1+(i-1)*nphi):(i*nphi),:);
-end
-
-%%% Figuur - supplement
+% Control the number of subplots:
 nrows = 3;
 ncols = 4;
 nplots = nrows*ncols;
 
 cfig = figure;
 set(cfig,'Units','centimeters','Position',[2 2 44 30],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
-for i=[1:(nplots-1),n]
+for i=[1:(nplots-1),n]      % Include increasing variance up to some point, and the distribution for the highest variance included
     if i==n
         subplot(nrows,ncols,nplots)
     else
@@ -164,12 +82,11 @@ for i=[1:(nplots-1),n]
     xlabel('Response threshold (\theta)','Fontsize',14);
     ylabel('Lysogeny propensity (\phi_{max})','Fontsize',14);
 end
-%print(cfig,'~/PhageCom/Figures/Result_plots/thresphi_heatmaps.pdf','-dpdf','-r0')
 
 
-% Seperate panels for main text figure
+%%% Separate panels for main text figure
 
-% A) Var = 0.05
+% A) Var = 0.05 (subplot 2)
 cfig = figure;
 set(cfig,'Units','centimeters','Position',[2 2 12.5 10],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
 colormap(flipud(bone));
@@ -185,7 +102,7 @@ title(['Var = ',num2str(varvec(2)),'; CV = ',num2str(CVvec(2))],'FontSize',14);
 xlabel('Response threshold (\theta)','Fontsize',14);
 ylabel('Lysogeny propensity (\phi_{max})','Fontsize',14);
 
-% B) Var = 0.15
+% B) Var = 0.15 (Subplot 6)
 cfig = figure;
 set(cfig,'Units','centimeters','Position',[2 2 12.5 10],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
 colormap(flipud(bone));
@@ -201,7 +118,7 @@ title(['Var = ',num2str(varvec(6)),'; CV = ',num2str(CVvec(6))],'FontSize',14);
 xlabel('Response threshold (\theta)','Fontsize',14);
 ylabel('Lysogeny propensity (\phi_{max})','Fontsize',14);
 
-% C) Var = 0.35
+% C) Var = 0.35 (Subplot 11)
 cfig = figure;
 set(cfig,'Units','centimeters','Position',[2 2 12.5 10],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
 colormap(flipud(bone));
@@ -216,72 +133,3 @@ set(gca,'YtickLabel',phimax(1:10:nphi));
 title(['Var = ',num2str(varvec(11)),'; CV = ',num2str(CVvec(11))],'FontSize',14);
 xlabel('Response threshold (\theta)','Fontsize',14);
 ylabel('Lysogeny propensity (\phi_{max})','Fontsize',14);
-
-
-
-%%%% Analysis of 20201105 data
-
-% Read data
-K = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20201105_ThresPhiEvol_varyingK_u1/K.txt');
-exitflag = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20201105_ThresPhiEvol_varyingK_u1/solve_exitflag.txt');
-P = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20201105_ThresPhiEvol_varyingK_u1/P.txt');
-L = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20201105_ThresPhiEvol_varyingK_u1/L.txt');
-
-ns = 441;
-nt = 1000;
-phimax = 0:0.05:1;
-nphi  = length(phimax);
-thres = 0:0.05:1;
-nthres = length(thres);
-
-varvec = [0.025:0.025:0.2,0.25:0.05:1];
-CVvec = sqrt(varvec);
-n = length(varvec);
-
-for k=0:(n-1)
-    Pfinal(:,:,(k+1)) = P(:,(1000*k+1):(1000*(k+1)));
-    Lfinal(:,:,(k+1)) = L(:,(1000*k+1):(1000*(k+1)));
-end
-
-% Calculate relative frequencies
-timevec = 900:1000;
-lt = length(timevec);
-p = zeros(ns,n);
-l = zeros(ns,n);
-for i=1:n
-    p(:,i) = (sum(Pfinal(:,timevec,i),2))/(sum(sum(Pfinal(:,timevec,i),2)));
-    l(:,i) = (sum(Lfinal(:,timevec,i),2))/(sum(sum(Lfinal(:,timevec,i),2)));
-end
-
-% Heatmap data
-heatmapdata = zeros(nphi,nthres,n);
-for i=1:nthres
-    heatmapdata(:,i,:) = p((1+(i-1)*nphi):(i*nphi),:);
-end
-
-%%% Figuur - supplement
-nrows = 3;
-ncols = 4;
-nplots = nrows*ncols;
-
-cfig = figure;
-set(cfig,'Units','centimeters','Position',[2 2 44 30],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
-for i=[1:(nplots-1),n]
-    if i==n
-        subplot(nrows,ncols,nplots)
-    else
-        subplot(nrows,ncols,i)
-    end
-    colormap(flipud(bone));
-    imagesc(heatmapdata(:,:,i));
-    cbar=colorbar;
-    set(cbar,'FontSize',12);
-    set(gca,'YDir','normal');
-    set(gca,'Xtick',1:10:nthres,'FontSize',12);
-    set(gca,'XtickLabel',thres(1:10:nthres));
-    set(gca,'Ytick',1:10:nphi,'FontSize',12);
-    set(gca,'YtickLabel',phimax(1:10:nphi));
-    title(['Var = ',num2str(varvec(i)),'; CV = ',num2str(round(CVvec(i),2))],'FontSize',14);
-    xlabel('Response threshold (\theta)','Fontsize',14);
-    ylabel('Lysogeny propensity (\phi_{max})','Fontsize',14);
-end

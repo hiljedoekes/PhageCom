@@ -1,37 +1,33 @@
-%%%%% Figures to show 2D selection of Phi_max and Thres values %%%%
-%{
-data = dlmread('~/PhageCom/Results/20191021_ThresPhiEvol_runs/Run2/p.txt');
-% For Tt=7 and Tt=10, take newly solved (= correct) equilibrium
-data(:,14) = dlmread('~/PhageCom/Results/20191021_ThresPhiEvol_runs/Run2/Extra_T7/p.txt');
-data(:,20) = dlmread('~/PhageCom/Results/20191021_ThresPhiEvol_runs/Run2/Extra_T10/p.txt');
-%}
-exitflags = dlmread('~/PhageCom/Results/20191121_ThresPhiEvol_vary_Ttransfer/solve_exitflag.txt');
-%data = dlmread('~/PhageCom/Results/20191121_ThresPhiEvol_vary_Ttransfer/p.txt');
-data = dlmread('~/Documents/PhD/PhageCom/Revision_NewSimuls/20200819_ThresPhiEvol_fulltransfer/p.txt');
+%%%%% Plot results of ThresPhiEvol runs with varying time between transfers %%%%
 
-Ttransfer_range = [0.5:0.5:12,24];
+%data = dlmread('../Data/20191121_ThresPhiEvol_varyT/p.txt');
+data = dlmread('../Data/20200819_ThresPhiEvol_fulltransfer/p.txt');
+
+Ttransfer_range = [0.5:0.5:12,24];      % Range of Ttransfer values that were included
 nTt = length(Ttransfer_range);
-phimax = 0:0.05:1;
+phimax = 0:0.05:1;                      % phimax-values included
 nphi  = length(phimax);
-thres = 0:0.05:1;
+thres = 0:0.05:1;                       % thres-values included
 nthres = length(thres);
 
-%%% Multiple heat maps %%%
-
-nrows = floor(sqrt(nTt));
-ncols = ceil(nTt / nrows);
-
+%%% Heatmap data format %%%
 heatmapdata = zeros(nphi,nthres,nTt);
 for i=1:nthres
     heatmapdata(:,i,:) = data((1+(i-1)*nphi):(i*nphi),:);
 end
 
+% 1. Heat map of strain distribution for each Ttransfer value 
+% (supporting figures)
+
+nrows = floor(sqrt(nTt));
+ncols = ceil(nTt / nrows);
+
 cfig = figure;
 set(cfig,'Units','centimeters','Position',[2 2 42 30],'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[42, 30])
 for i=1:nTt
     subplot(nrows,ncols,i)
-    colormap(flipud(bone));
-    imagesc(heatmapdata(:,:,i));
+    colormap(flipud(bone));         % Colour map
+    imagesc(heatmapdata(:,:,i));    % Plot results
     cbar=colorbar;
     set(cbar,'FontSize',10);
     set(gca,'YDir','normal');
@@ -44,10 +40,8 @@ for i=1:nTt
     ylabel('Lysogeny propensity (\phi_{max})','Fontsize',10);
 end
 
-%print(cfig,'~/PhageCom/Figures/Result_plots/thresphi_heatmaps.pdf','-dpdf','-r0')
 
-
-%%% Two single heatmaps to include in main text figure
+%%% 2. Two single heatmaps to include in main text figure
 
 % T = 2
 fig = figure;
@@ -62,10 +56,8 @@ set(gca,'XtickLabel',thres(1:10:nthres));
 set(gca,'Ytick',1:10:nphi,'FontSize',10);
 set(gca,'YtickLabel',phimax(1:10:nphi));
 title('T = 2','FontSize',12);
-xlabel('Response threshold (\theta)','Fontsize',10);
-ylabel('Lysogeny propensity (\phi_{max})','Fontsize',10);
-
-saveas(fig,'~/PhageCom/Figures/Result_plots/thresphi_heatmap_T2.svg')
+xlabel('Response threshold (\theta)','Fontsize',16);
+ylabel('Lysogeny propensity (\phi_{max})','Fontsize',16);
 
 % T = 12
 fig = figure;
@@ -80,12 +72,11 @@ set(gca,'XtickLabel',thres(1:10:nthres));
 set(gca,'Ytick',1:10:nphi,'FontSize',10);
 set(gca,'YtickLabel',phimax(1:10:nphi));
 title('T = 12','FontSize',12);
-xlabel('Response threshold (\theta)','Fontsize',10);
-ylabel('Lysogeny propensity (\phi_{max})','Fontsize',10);
+xlabel('Response threshold (\theta)','Fontsize',16);
+ylabel('Lysogeny propensity (\phi_{max})','Fontsize',16);
 
-saveas(fig,'~/PhageCom/Figures/Result_plots/thresphi_heatmap_T12.svg')
 
-%%% Means with s.d. %%%
+%%% 3. Plot means with s.d. %%%
 %{
 meanphis = zeros(1,nTt);
 sdphis = zeros(1,nTt);
