@@ -7,4 +7,4 @@ Scripts used to support the analytical derivation of the evolutionarily stable s
 
 MATLAB
 
-See overview_scripts_and_data.pdf for code and data per figure.
+Scripts for numerically solving the system of differential equations and generating figures in the absence of arbitrium communication (NoComm) and in its presence (Comm). See overview_scripts_and_data.pdf for code and data per figure.
